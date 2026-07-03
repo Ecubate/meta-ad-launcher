@@ -1,0 +1,22 @@
+{
+  "name": "tool-meta-ads-listing",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Adnova-style bulk ad launcher for Meta — pull creatives from Google Drive, bulk-create Meta ads with AI features off by default.",
+  "workspaces": [
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,web -c blue,magenta \"npm:dev:server\" \"npm:dev:web\"",
+    "dev:server": "npm run dev --workspace server",
+    "dev:web": "npm run dev --workspace web",
+    "build": "npm run build --workspace web",
+    "db:push": "npm run db:push --workspace server",
+    "db:studio": "npm run db:studio --workspace server",
+    "db:seed": "npm run db:seed --workspace server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

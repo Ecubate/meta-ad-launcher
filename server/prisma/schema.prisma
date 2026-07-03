@@ -1,0 +1,161 @@
+// Meta Ad Launcher — data model
+// SQLite for local dev; switch `provider` to "postgresql" for production (no model changes needed).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// A brand/tenant. One workspace per brand (mirrors Adnova's "Ecubate" workspace).
+model Workspace {
+  id        String     @id @default(cuid())
+  name      String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  adAccounts AdAccount[]
+  creatives  Creative[]
+}
+
+/// A connected Meta ad account (e.g. "Walther Apparel"), scoped to a workspace.
+model AdAccount {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  /// Meta ad account id, e.g. act_123456789 (store the numeric part).
+  metaAccountId String
+  name          String
+  currency      String   @default("EUR")
+  /// Encrypted access token (System User token for own accounts, or OAuth token for clients).
+  accessToken   String?
+  tokenExpiresAt DateTime?
+  onboarded     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  settings      AdAccountSettings?
+  adCopyTemplates AdCopyTemplate[]
+  launchBatches LaunchBatch[]
+
+  @@unique([workspaceId, metaAccountId])
+}
+
+/// One-time onboarding config per ad account (the 5-step wizard).
+model AdAccountSettings {
+  id          String   @id @default(cuid())
+  adAccountId String   @unique
+  adAccount   AdAccount @relation(fields: [adAccountId], references: [id], onDelete: Cascade)
+
+  // Step 1 — Ad Profiles
+  facebookPageId       String?
+  facebookPageName     String?
+  instagramAccountId   String?
+  instagramAccountName String?
+
+  // Step 2 — Tracking Specs
+  trackingEnabled Boolean @default(true)
+  pixelId         String?
+  pixelName       String?
+  appId           String?
+
+  // Step 3 — Ad Naming Convention
+  /// Ordered token list, e.g. ["{{filename}}","{{ad type}}","{{date}}"].
+  /// (Json defaults are set in app code — Prisma can't emit valid SQLite DDL defaults for Json.)
+  namingTokens             Json?
+  /// Separator label: "Underscore _", "Dash -", "Space", etc.
+  namingSeparator          String  @default("_")
+  addSpaceAroundSeparator  Boolean @default(false)
+  removeDimensionsFromName  Boolean @default(false)
+  customNameText           String?
+
+  // Step 4 — Launch Settings
+  multiAdvertiser Boolean @default(true)
+  launchAsPaused  Boolean @default(false)
+
+  // Step 5 — Creative Enhancements (Meta Advantage+ creative toggles; all OFF by default).
+  /// e.g. {"standardEnhancements":false,"textImprovements":false,"imageTemplates":false,...}
+  creativeEnhancements Json?
+
+  // Setup — Configure Placements
+  /// {"mode":"manual","positions":{...}} or {"mode":"advantage_plus"}.
+  placements Json?
+
+  updatedAt DateTime @updatedAt
+}
+
+/// A creative asset synced from Google Drive and (once uploaded) its Meta media id.
+model Creative {
+  id           String   @id @default(cuid())
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  driveFileId  String?
+  filename     String
+  mimeType     String
+  /// IMAGE | VIDEO
+  type         String
+  width        Int?
+  height       Int?
+  /// Meta image_hash (images) once uploaded to an ad account.
+  metaImageHash String?
+  /// Meta video_id (videos) once uploaded.
+  metaVideoId   String?
+  thumbnailUrl  String?
+  sizeBytes     Int?
+  createdAt     DateTime @default(now())
+
+  @@index([workspaceId])
+}
+
+/// Reusable ad copy (primary texts / headlines / descriptions / CTA / URL).
+model AdCopyTemplate {
+  id          String   @id @default(cuid())
+  adAccountId String
+  adAccount   AdAccount @relation(fields: [adAccountId], references: [id], onDelete: Cascade)
+  name        String
+  isDefault   Boolean  @default(false)
+  primaryTexts Json?
+  headlines    Json?
+  descriptions Json?
+  ctaType      String  @default("SHOP_NOW")
+  url          String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+/// A bulk launch run.
+model LaunchBatch {
+  id          String   @id @default(cuid())
+  adAccountId String
+  adAccount   AdAccount @relation(fields: [adAccountId], references: [id], onDelete: Cascade)
+  name        String
+  /// DRAFT | QUEUED | RUNNING | COMPLETED | FAILED
+  status      String   @default("DRAFT")
+  /// How ads attach: NEW_CAMPAIGN | NEW_ADSET | EXISTING_ADSET | DUPLICATE.
+  targetType  String   @default("NEW_CAMPAIGN")
+  /// Full launch payload (rows: creative + copy + targeting), snapshotted.
+  payload     Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  ads         LaunchedAd[]
+}
+
+/// One created ad (and the Meta ids it produced).
+model LaunchedAd {
+  id            String   @id @default(cuid())
+  batchId       String
+  batch         LaunchBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  name          String
+  /// PENDING | CREATED | ERROR
+  status        String   @default("PENDING")
+  metaCampaignId String?
+  metaAdsetId    String?
+  metaAdId       String?
+  metaCreativeId String?
+  error          String?
+  createdAt      DateTime @default(now())
+
+  @@index([batchId])
+}
