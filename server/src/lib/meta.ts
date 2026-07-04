@@ -225,9 +225,10 @@ export const meta = {
     // unless a feature is explicitly enabled in `enhancements`.
     const features = p.enhancements ?? {};
     const optOut = (on?: boolean) => ({ enroll_status: on ? 'OPT_IN' : 'OPT_OUT' });
+    // NOTE: the umbrella `standard_enhancements` field is deprecated (error 3858504) —
+    // Meta requires opting into/out of individual features instead. All OPT_OUT = AI off.
     const degrees_of_freedom_spec = {
       creative_features_spec: {
-        standard_enhancements: optOut(features.standardEnhancements),
         image_templates: optOut(features.imageTemplates),
         text_optimizations: optOut(features.textImprovements),
         image_brightness_and_contrast: optOut(features.brightnessContrast),
