@@ -166,3 +166,12 @@ model LaunchedAd {
 
   @@index([batchId])
 }
+
+/// Persistent login sessions (survive server restarts; Postgres-ready for deploy).
+model Session {
+  id        String   @id
+  data      String
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}

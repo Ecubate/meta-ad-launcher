@@ -3,12 +3,14 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Router, type Express, type Request, type Response, type NextFunction } from 'express';
 import { env } from './env.js';
+import { PrismaSessionStore } from './session-store.js';
 
 export type SessionUser = { id: string; name: string; email: string; picture?: string };
 
 export function setupAuth(app: Express) {
   app.use(
     session({
+      store: new PrismaSessionStore(),
       secret: env.sessionSecret,
       resave: false,
       saveUninitialized: false,
