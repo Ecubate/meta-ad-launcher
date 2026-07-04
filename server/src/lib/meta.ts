@@ -31,12 +31,14 @@ async function graph<T = any>(
     opts.body.set('access_token', opts.token);
   } else if (method === 'GET') {
     for (const [k, v] of Object.entries(opts.params ?? {})) {
+      if (v === undefined || v === null) continue;
       url.searchParams.set(k, typeof v === 'object' ? JSON.stringify(v) : String(v));
     }
     url.searchParams.set('access_token', opts.token);
   } else {
     const form = new URLSearchParams();
     for (const [k, v] of Object.entries(opts.params ?? {})) {
+      if (v === undefined || v === null) continue;
       form.set(k, typeof v === 'object' ? JSON.stringify(v) : String(v));
     }
     form.set('access_token', opts.token);
@@ -84,6 +86,22 @@ export const meta = {
     });
   },
 
+  /** Existing campaigns on the account — for the launch table campaign filter. */
+  listCampaigns(accountId: string, token: string) {
+    return graph<{ data: Array<{ id: string; name: string; status: string; objective: string }> }>(
+      `${acct(accountId)}/campaigns`,
+      { token, params: { fields: 'id,name,status,objective', limit: 200 } },
+    );
+  },
+
+  /** Existing ad sets — feeds the "Select Ad Set" column (attach ads to an existing ad set). */
+  listAdSets(accountId: string, token: string) {
+    return graph<{ data: Array<{ id: string; name: string; status: string; campaign_id: string; campaign?: { name: string } }> }>(
+      `${acct(accountId)}/adsets`,
+      { token, params: { fields: 'id,name,status,campaign_id,campaign{name}', limit: 500 } },
+    );
+  },
+
   // ─── Media upload ──────────────────────────────────────────────────────────
 
   /** Upload an image; returns its image_hash (cache this on the Creative). */
@@ -123,8 +141,10 @@ export const meta = {
         status: p.status ?? 'PAUSED',
         special_ad_categories: p.specialAdCategories ?? [],
         // Budget lives at the ad set by default → avoids Advantage Campaign Budget (CBO)
-        // unless a campaign-level dailyBudget is explicitly passed.
-        ...(p.dailyBudget ? { daily_budget: p.dailyBudget } : {}),
+        // unless a campaign-level dailyBudget is explicitly passed. When there's no campaign
+        // budget, Meta requires is_adset_budget_sharing_enabled to be set explicitly; false
+        // keeps budgets isolated per ad set (no Advantage budget sharing).
+        ...(p.dailyBudget ? { daily_budget: p.dailyBudget } : { is_adset_budget_sharing_enabled: false }),
       },
     });
     return res.id;

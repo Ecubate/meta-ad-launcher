@@ -17,6 +17,12 @@ export const env = {
     clientSecret: opt('GOOGLE_CLIENT_SECRET'),
     redirectUri: opt('GOOGLE_REDIRECT_URI', 'http://localhost:8787/api/drive/oauth/callback'),
     serviceAccountJson: opt('GOOGLE_SERVICE_ACCOUNT_JSON'),
+    authCallbackUrl: opt('GOOGLE_AUTH_CALLBACK_URL', 'http://localhost:8787/api/auth/google/callback'),
   },
   tokenEncryptionKey: opt('TOKEN_ENCRYPTION_KEY', 'dev-insecure-key-change-me'),
+  sessionSecret: opt('SESSION_SECRET', 'dev-session-secret-change-me'),
+  // Restrict Google login to this email domain (empty = allow any). e.g. "ecubate.com"
+  allowedEmailDomain: opt('ALLOWED_EMAIL_DOMAIN'),
+  // Allow the passwordless dev login button (local only). Set to "false" in prod.
+  devLogin: opt('DEV_LOGIN', 'true') !== 'false',
 };

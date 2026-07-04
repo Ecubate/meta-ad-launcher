@@ -1,10 +1,13 @@
 # Architecture — Meta Ad Launcher
 
-**Status:** Proposed (awaiting Mart's review)
+**Status:** Accepted (2026-07-01, by Geert) — Decisions 3 & 4 ratified as recommended.
 **Date:** 2026-07-01
 **Owner:** Geert
+**Note for Mart:** Decisions 1 & 2 mirror the Agent platform. Decisions 3 (Postgres) and
+4 (TypeScript + React table) are deliberate, contained divergences justified below — flag
+async if you'd prefer otherwise; the rework is bounded to this isolated repo.
 
-This ADR proposes how the Meta ad launcher aligns with the Ecubate Agent platform
+This ADR sets how the Meta ad launcher aligns with the Ecubate Agent platform
 (`docs/architecture.md` in `Ecubate/Agent`). It follows the same format. Anything
 accepted here becomes the standard for this tool; anything contradicting it is debt.
 
@@ -61,29 +64,33 @@ File-based state would be fragile and slow for this. This is the one divergence 
 strongest justification.
 
 **Consequence:** Adds Postgres to the box (a service the platform doesn't currently run).
-Documented here so it's a conscious choice, not drift. Open question for Mart: acceptable,
-or prefer to keep everything file-based?
+Local dev uses SQLite; production uses Postgres via the same data layer. Documented here so
+it's a conscious choice, not drift.
+
+**Status: Accepted** (2026-07-01). Mart may flag async.
 
 ---
 
-## Decision 4 — Language & frontend (open — Mart to decide)
+## Decision 4 — TypeScript + React SPA for the launch table (Accepted)
 
-Two options, no unilateral choice:
-- **(A) Mirror:** plain JS (ESM) + Express-rendered views, matching the platform exactly.
-- **(B) Hybrid:** TypeScript + a small React/Vite SPA for the bulk-edit ad table only
-  (the table is genuinely SPA-shaped), served by the same Express app.
+The tool is built in **TypeScript**, with a **React/Vite SPA** for the app UI (the bulk-edit
+ad table is genuinely SPA-shaped), served by the same Express app that exposes the API.
 
-**Why it's open:** Consistency (A) vs. UX/maintainability of a complex table (B). Mart owns
-the standard. The current prototype is (B); it can be converted to (A) if required.
+**Why:** (1) This tool touches ad budget — TypeScript's type safety materially reduces the
+class of bugs that matter most here. (2) The launch table is a live 100-row editable grid
+with bulk edit + variations; server-rendered views would be painful to build and maintain.
+This diverges from the platform's plain-JS/Express-rendered convention, deliberately and
+in a contained way (one isolated repo).
 
-**Consequence:** Whichever is chosen is applied consistently. If (A), the existing
-TS/React prototype is rewritten before any further feature work.
+**Consequence:** Applied consistently across the tool. If Mart later requires plain-JS
+parity, the conversion is bounded to this repo. **Status: Accepted** (2026-07-01).
 
 ---
 
 ## Migration / next steps
 
-1. Mart reviews Decisions 3 and 4.
-2. On acceptance, create `Ecubate/<repo>`, add the nginx/pm2/Certbot deploy runbook.
-3. Adopt passport Google OAuth before any deploy.
-4. Continue feature build (launch table + Drive ingestion) on the agreed stack.
+1. ✅ Decisions accepted (2026-07-01). Build proceeds on the agreed stack.
+2. Feature build order: onboarding/settings → creatives + Drive → ad copy → launch table.
+3. Before any deploy: adopt passport Google OAuth; Mart creates `Ecubate/<repo>` + the
+   nginx/pm2/Certbot deploy runbook (his domain).
+4. Mart may flag Decisions 3/4 async; rework is bounded to this repo.

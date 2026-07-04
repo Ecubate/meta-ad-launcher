@@ -2,5 +2,45 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: dark;
+  --bg: #0b0e13;        /* app background */
+  --rail: #0c1016;      /* far-left icon rail */
+  --side: #0f141b;      /* nav column */
+  --surface: #131a23;   /* cards / panels / controls */
+  --input: #1a212b;     /* input fields */
+  --hover: #1b232e;     /* hover / active row */
+  --border: #263041;    /* hairlines */
+  --fg: #e7ebf0;        /* primary text */
+  --muted: #8a94a3;     /* secondary text */
+  --primary: #1fa055;   /* brand green */
+  --primary-hover: #17864a;
+}
+
 html, body, #root { height: 100%; }
-body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0f172a; background: #fff; }
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  -webkit-font-smoothing: antialiased;
+}
+
+.cell {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--input);
+  border: 1px solid var(--border);
+  font-size: 0.875rem;
+  line-height: 1.3;
+  color: var(--fg);
+  resize: none;
+}
+.cell::placeholder { color: var(--muted); }
+.cell:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+
+/* dark scrollbars */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #2a3342; border-radius: 6px; }
+::-webkit-scrollbar-track { background: transparent; }

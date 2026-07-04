@@ -7,3 +7,9 @@ dist/
 server/prisma/*.db
 server/prisma/*.db-journal
 server/.data/
+
+# databases / local
+*.db
+*.db-journal
+*.sqlite
+.claude/settings.local.json

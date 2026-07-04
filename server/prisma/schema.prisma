@@ -121,6 +121,13 @@ model AdCopyTemplate {
   descriptions Json?
   ctaType      String  @default("SHOP_NOW")
   url          String?
+  displayLink  String?
+  customStoreListingId String?
+  utmParams    String?
+  productSet   String?
+  facebookPageId String?
+  instagramAccountId String?
+  adSetId      String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }

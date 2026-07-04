@@ -151,3 +151,66 @@ api.get('/ad-accounts/:id/launched-ads', wrap(async (req, res) => {
     }),
   );
 }));
+
+// ─── Meta ad sets (launch table "Select Ad Set") ───────────────────────────────
+api.get('/ad-accounts/:id/meta/adsets', wrap(async (req, res) => {
+  const account = await prisma.adAccount.findUniqueOrThrow({ where: { id: req.params.id } });
+  const token = tokenFor(account);
+  if (!token) return res.json({ adsets: [], note: 'No Meta token — connect an account to load ad sets.' });
+  try {
+    const data = await meta.listAdSets(account.metaAccountId, token);
+    res.json({ adsets: data.data });
+  } catch (e: any) {
+    res.json({ adsets: [], note: e.message });
+  }
+}));
+
+// ─── Ad Copy Templates ─────────────────────────────────────────────────────────
+api.get('/ad-accounts/:id/ad-copy-templates', wrap(async (req, res) => {
+  res.json(await prisma.adCopyTemplate.findMany({ where: { adAccountId: req.params.id, isDefault: false }, orderBy: { createdAt: 'desc' } }));
+}));
+
+api.post('/ad-accounts/:id/ad-copy-templates', wrap(async (req, res) => {
+  const b = req.body ?? {};
+  res.json(await prisma.adCopyTemplate.create({ data: { ...b, adAccountId: req.params.id, isDefault: false } }));
+}));
+
+api.put('/ad-copy-templates/:tid', wrap(async (req, res) => {
+  const { id, adAccountId, createdAt, updatedAt, ...data } = req.body ?? {};
+  res.json(await prisma.adCopyTemplate.update({ where: { id: req.params.tid }, data }));
+}));
+
+api.delete('/ad-copy-templates/:tid', wrap(async (req, res) => {
+  await prisma.adCopyTemplate.delete({ where: { id: req.params.tid } });
+  res.json({ ok: true });
+}));
+
+// ─── Default Ad Copy (a single isDefault template per account) ──────────────────
+api.get('/ad-accounts/:id/default-ad-copy', wrap(async (req, res) => {
+  res.json(await prisma.adCopyTemplate.findFirst({ where: { adAccountId: req.params.id, isDefault: true } }));
+}));
+
+api.put('/ad-accounts/:id/default-ad-copy', wrap(async (req, res) => {
+  const b = req.body ?? {};
+  const existing = await prisma.adCopyTemplate.findFirst({ where: { adAccountId: req.params.id, isDefault: true } });
+  const data = { ...b };
+  delete data.id; delete data.adAccountId; delete data.createdAt; delete data.updatedAt;
+  if (existing) res.json(await prisma.adCopyTemplate.update({ where: { id: existing.id }, data }));
+  else res.json(await prisma.adCopyTemplate.create({ data: { ...data, name: 'Default Ad Copy', adAccountId: req.params.id, isDefault: true } }));
+}));
+
+// ─── Drafts (saved, not-yet-launched batches) ──────────────────────────────────
+api.post('/ad-accounts/:id/drafts', wrap(async (req, res) => {
+  const b = z.object({ name: z.string(), targetType: z.string().optional(), payload: z.any() }).parse(req.body);
+  res.json(await prisma.launchBatch.create({
+    data: { adAccountId: req.params.id, name: b.name, targetType: b.targetType ?? 'NEW_CAMPAIGN', payload: b.payload, status: 'DRAFT' },
+  }));
+}));
+
+api.get('/ad-accounts/:id/drafts', wrap(async (req, res) => {
+  res.json(await prisma.launchBatch.findMany({ where: { adAccountId: req.params.id, status: 'DRAFT' }, orderBy: { updatedAt: 'desc' } }));
+}));
+
+api.get('/ad-accounts/:id/batches', wrap(async (req, res) => {
+  res.json(await prisma.launchBatch.findMany({ where: { adAccountId: req.params.id }, include: { ads: true }, orderBy: { createdAt: 'desc' } }));
+}));

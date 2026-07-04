@@ -4,10 +4,17 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Adnova-ish palette
-        brand: { DEFAULT: '#16a34a', dark: '#15803d' }, // the green Next buttons
-        ink: '#0f172a',
-        sidebar: '#fafafa',
+        brand: { DEFAULT: 'var(--primary)', dark: 'var(--primary-hover)' },
+        bg: 'var(--bg)',
+        rail: 'var(--rail)',
+        side: 'var(--side)',
+        surface: 'var(--surface)',
+        line: 'var(--border)',
+        fg: 'var(--fg)',
+        muted: 'var(--muted)',
+        primary: 'var(--primary)',
+        input: 'var(--input)',
+        hover: 'var(--hover)',
       },
     },
   },
