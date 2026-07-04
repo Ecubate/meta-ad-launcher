@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAccount } from '../lib/account';
 import { LoadCreativesModal } from '../components/LoadCreativesModal';
@@ -26,6 +27,7 @@ const stripExt = (f: string) => f.replace(/\.[a-z0-9]+$/i, '');
 
 export function LaunchTablePage() {
   const { workspace, account } = useAccount();
+  const [searchParams] = useSearchParams();
   const [rows, setRows] = useState<Row[]>([]);
   const [modal, setModal] = useState(false);
   const [adsets, setAdsets] = useState<any[]>([]);
@@ -33,6 +35,32 @@ export function LaunchTablePage() {
   const [batchName, setBatchName] = useState('New Launch');
   const [launching, setLaunching] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [search, setSearch] = useState('');
+
+  // Reopen a saved draft into the table (?draft=<batchId>).
+  useEffect(() => {
+    const draftId = searchParams.get('draft');
+    if (!draftId || !workspace) return;
+    (async () => {
+      const [batch, creatives] = await Promise.all([api.batch(draftId), api.creatives(workspace.id)]);
+      const byId = new Map(creatives.map((c: any) => [c.id, c]));
+      setBatchName(batch.name);
+      setRows(
+        (batch.payload?.rows ?? []).map((r: any, i: number) => {
+          const c: any = byId.get(r.creativeId) ?? {};
+          return {
+            key: `${r.creativeId}-draft-${i}`, creativeId: r.creativeId,
+            filename: c.filename ?? r.creativeId, type: c.type ?? 'IMAGE', thumbnailUrl: c.thumbnailUrl,
+            adName: r.adName ?? '',
+            primaryTexts: r.primaryTexts?.length ? r.primaryTexts : [r.primaryText ?? ''],
+            headlines: r.headlines?.length ? r.headlines : [r.headline ?? ''],
+            description: r.description ?? '', url: r.url ?? '', ctaType: r.ctaType ?? 'SHOP_NOW',
+            adSetId: r.existingAdsetId ?? '', displayLink: '',
+          };
+        }),
+      );
+    })().catch(() => {});
+  }, [searchParams, workspace?.id]);
 
   useEffect(() => {
     if (!account) return;
@@ -143,6 +171,10 @@ export function LaunchTablePage() {
     return n + p * h;
   }, 0);
 
+  const visibleRows = search.trim()
+    ? rows.filter((r) => r.adName.toLowerCase().includes(search.trim().toLowerCase()))
+    : rows;
+
   if (rows.length === 0) {
     return (
       <div className="h-full grid place-items-center">
@@ -162,7 +194,9 @@ export function LaunchTablePage() {
       {/* Toolbar */}
       <div className="flex items-center gap-3 px-6 py-3 border-b border-line">
         <h1 className="text-lg font-semibold text-fg">Launch Ads</h1>
-        <input value={batchName} onChange={(e) => setBatchName(e.target.value)} className="px-3 py-1.5 rounded-md bg-input border border-line text-sm text-fg w-48" />
+        <input value={batchName} onChange={(e) => setBatchName(e.target.value)} className="px-3 py-1.5 rounded-md bg-input border border-line text-sm text-fg w-40" />
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by ad name"
+          className="px-3 py-1.5 rounded-md bg-input border border-line text-sm text-fg w-52" />
         <div className="ml-auto flex items-center gap-2">
           <select onChange={(e) => e.target.value && applyTemplate(e.target.value)} defaultValue=""
             className="px-3 py-1.5 rounded-md bg-surface border border-line text-sm text-fg">
@@ -200,7 +234,7 @@ export function LaunchTablePage() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
+            {visibleRows.map((r) => (
               <tr key={r.key} className="border-t border-line align-top">
                 <td className="px-3 py-3 w-24">
                   <div className="w-16 h-16 rounded-md bg-surface border border-line grid place-items-center overflow-hidden text-muted">
