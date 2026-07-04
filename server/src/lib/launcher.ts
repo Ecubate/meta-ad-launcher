@@ -102,6 +102,12 @@ export async function runBatch(batchId: string) {
 
   await prisma.launchBatch.update({ where: { id: batchId }, data: { status: 'RUNNING' } });
 
+  // Pick objective + optimization based on whether a conversion pixel is configured.
+  // No pixel → traffic / link-clicks (works on any account); pixel → sales / conversions.
+  const hasPixel = !!(settings.trackingEnabled && settings.pixelId);
+  const objective = payload.objective ?? (hasPixel ? 'OUTCOME_SALES' : 'OUTCOME_TRAFFIC');
+  const optimizationGoal = payload.optimizationGoal ?? (hasPixel ? 'OFFSITE_CONVERSIONS' : 'LINK_CLICKS');
+
   // 1. Resolve / create the campaign.
   let campaignId = payload.existingCampaignId;
   if (!campaignId) {
@@ -109,7 +115,7 @@ export async function runBatch(batchId: string) {
       ? `dryrun_camp_${batchId.slice(-6)}`
       : await meta.createCampaign(accountId, token, {
           name: payload.campaignName ?? batch.name,
-          objective: payload.objective ?? 'OUTCOME_SALES',
+          objective,
           status: launchStatus,
         });
   }
@@ -125,9 +131,11 @@ export async function runBatch(batchId: string) {
       : await meta.createAdSet(accountId, token, {
           name: payload.adsetName ?? `${batch.name} — Ad Set`,
           campaignId,
-          dailyBudget: payload.dailyBudget,
-          optimizationGoal: payload.optimizationGoal,
-          pixelId: settings.trackingEnabled ? settings.pixelId ?? undefined : undefined,
+          // Meta requires a budget when there's no campaign budget; default €10/day.
+          // Ads launch PAUSED, so this only spends once a human activates them.
+          dailyBudget: payload.dailyBudget ?? 1000,
+          optimizationGoal,
+          pixelId: hasPixel ? settings.pixelId ?? undefined : undefined,
           customEventType: payload.customEventType,
           targeting,
           status: launchStatus,

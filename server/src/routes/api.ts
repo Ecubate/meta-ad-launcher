@@ -211,7 +211,10 @@ api.post('/ad-accounts/:id/launch', wrap(async (req, res) => {
     data: { adAccountId: req.params.id, name: body.name, targetType: body.targetType ?? 'NEW_CAMPAIGN', payload: body.payload, status: 'QUEUED' },
   });
   // Run async; the client polls the batch for status.
-  runBatch(batch.id).catch((e) => console.error('batch failed', e));
+  runBatch(batch.id).catch(async (e) => {
+    console.error('batch failed', e?.message ?? e);
+    await prisma.launchBatch.update({ where: { id: batch.id }, data: { status: 'FAILED' } }).catch(() => {});
+  });
   res.json(batch);
 }));
 
