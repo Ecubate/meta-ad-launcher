@@ -4,7 +4,7 @@ import { prisma } from '../db.js';
 import { encrypt, decrypt } from '../crypto.js';
 import { env } from '../env.js';
 import { meta } from '../lib/meta.js';
-import { drive } from '../lib/drive.js';
+import { drive, parseBulkLinks } from '../lib/drive.js';
 import { runBatch } from '../lib/launcher.js';
 import { buildAdName } from '../lib/naming.js';
 
@@ -72,6 +72,8 @@ api.get('/ad-accounts/:id/meta/pixels', wrap(async (req, res) => {
 }));
 
 // ─── Google Drive ──────────────────────────────────────────────────────────────
+api.get('/drive/status', wrap(async (_req, res) => res.json({ connected: drive.isConnected() })));
+
 api.get('/drive/oauth/url', wrap(async (_req, res) => res.json({ url: drive.getAuthUrl() })));
 
 api.get('/drive/oauth/callback', wrap(async (req, res) => {
@@ -108,6 +110,36 @@ api.post('/workspaces/:id/creatives/sync', wrap(async (req, res) => {
     );
   }
   res.json(created);
+}));
+
+/** Bulk-add creatives from pasted Google Drive share links (Adnova's "Add Drive Links in Bulk"). */
+api.post('/workspaces/:id/creatives/from-links', wrap(async (req, res) => {
+  const { links } = z.object({ links: z.string() }).parse(req.body);
+  const ids = parseBulkLinks(links);
+  if (ids.length === 0) return res.status(400).json({ error: 'No valid Google Drive links found.' });
+  if (!drive.isConnected()) return res.status(400).json({ error: 'Google Drive not connected. Connect Drive first.' });
+
+  const created: any[] = [];
+  const errors: { id: string; error: string }[] = [];
+  for (const fileId of ids.slice(0, 100)) {
+    try {
+      const existing = await prisma.creative.findFirst({ where: { workspaceId: req.params.id, driveFileId: fileId } });
+      if (existing) { created.push(existing); continue; }
+      const f = await drive.getFileMeta(fileId);
+      created.push(
+        await prisma.creative.create({
+          data: {
+            workspaceId: req.params.id, driveFileId: f.driveFileId, filename: f.filename, mimeType: f.mimeType,
+            type: f.type, width: f.width ?? undefined, height: f.height ?? undefined,
+            sizeBytes: f.sizeBytes ?? undefined, thumbnailUrl: f.thumbnailUrl ?? undefined,
+          },
+        }),
+      );
+    } catch (e: any) {
+      errors.push({ id: fileId, error: e.message });
+    }
+  }
+  res.json({ created, errors, parsed: ids.length });
 }));
 
 api.get('/workspaces/:id/creatives', wrap(async (req, res) => {

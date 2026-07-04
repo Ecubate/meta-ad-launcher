@@ -35,6 +35,10 @@ export const api = {
   // creatives
   creatives: (wsId: string) => req<any[]>(`/workspaces/${wsId}/creatives`),
   syncCreatives: (wsId: string, folderId: string) => req<any[]>(`/workspaces/${wsId}/creatives/sync`, { method: 'POST', body: JSON.stringify({ folderId }) }),
+  creativesFromLinks: (wsId: string, links: string) =>
+    req<{ created: any[]; errors: { id: string; error: string }[]; parsed: number }>(`/workspaces/${wsId}/creatives/from-links`, { method: 'POST', body: JSON.stringify({ links }) }),
+  driveStatus: () => req<{ connected: boolean }>('/drive/status'),
+  driveAuthUrl: () => req<{ url: string }>('/drive/oauth/url'),
 
   // ad copy
   adCopyTemplates: (id: string) => req<any[]>(`/ad-accounts/${id}/ad-copy-templates`),
