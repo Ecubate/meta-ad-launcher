@@ -40,6 +40,11 @@ export const api = {
   driveStatus: () => req<{ connected: boolean }>('/drive/status'),
   driveAuthUrl: () => req<{ url: string }>('/drive/oauth/url'),
 
+  // connect facebook
+  metaOauthUrl: () => req<{ configured: boolean; url?: string }>('/meta/oauth/url'),
+  metaAccounts: () => req<any[]>('/meta/accounts'),
+  connectMeta: (wsId: string, body: any) => req<any>(`/workspaces/${wsId}/connect-meta`, { method: 'POST', body: JSON.stringify(body) }),
+
   // ad copy
   adCopyTemplates: (id: string) => req<any[]>(`/ad-accounts/${id}/ad-copy-templates`),
   createTemplate: (id: string, body: any) => req(`/ad-accounts/${id}/ad-copy-templates`, { method: 'POST', body: JSON.stringify(body) }),

@@ -5,6 +5,7 @@ import { encrypt, decrypt } from '../crypto.js';
 import { env } from '../env.js';
 import { meta } from '../lib/meta.js';
 import { drive, parseBulkLinks } from '../lib/drive.js';
+import { metaOauth } from '../lib/meta-oauth.js';
 import { runBatch } from '../lib/launcher.js';
 import { buildAdName } from '../lib/naming.js';
 
@@ -72,6 +73,50 @@ api.get('/ad-accounts/:id/meta/pixels', wrap(async (req, res) => {
 }));
 
 // ─── Google Drive ──────────────────────────────────────────────────────────────
+// ─── Connect Facebook (Meta OAuth) ─────────────────────────────────────────────
+api.get('/meta/oauth/url', wrap(async (req, res) => {
+  if (!metaOauth.configured()) return res.json({ configured: false });
+  const state = Math.random().toString(36).slice(2); // simple CSRF token
+  (req.session as any).metaOauthState = state;
+  res.json({ configured: true, url: metaOauth.loginUrl(state) });
+}));
+
+api.get('/meta/oauth/callback', wrap(async (req, res) => {
+  const { code, state } = req.query as { code?: string; state?: string };
+  if (!code || state !== (req.session as any).metaOauthState) {
+    return res.send('<script>window.close()</script>Authorization failed or expired. You can close this tab.');
+  }
+  const short = await metaOauth.exchangeCode(code);
+  const { token } = await metaOauth.longLived(short);
+  (req.session as any).pendingMetaToken = token; // held until the user picks accounts
+  res.send('<script>window.opener && window.opener.postMessage("meta-connected","*"); window.close()</script>Facebook connected. You can close this tab.');
+}));
+
+/** Ad accounts reachable by the just-connected token (for the account picker). */
+api.get('/meta/accounts', wrap(async (req, res) => {
+  const token = (req.session as any).pendingMetaToken;
+  if (!token) return res.status(400).json({ error: 'Not connected. Click Connect Facebook first.' });
+  const data = await meta.listAdAccounts(token);
+  res.json(data.data.map((a) => ({ metaAccountId: a.account_id, name: a.name, currency: a.currency, status: a.account_status })));
+}));
+
+/** Link a chosen ad account to a workspace, storing the (encrypted) connected token. */
+api.post('/workspaces/:id/connect-meta', wrap(async (req, res) => {
+  const token = (req.session as any).pendingMetaToken;
+  if (!token) return res.status(400).json({ error: 'Not connected.' });
+  const body = z.object({ metaAccountId: z.string(), name: z.string(), currency: z.string().optional() }).parse(req.body);
+  const account = await prisma.adAccount.upsert({
+    where: { workspaceId_metaAccountId: { workspaceId: req.params.id, metaAccountId: body.metaAccountId } },
+    update: { accessToken: encrypt(token), name: body.name },
+    create: {
+      workspaceId: req.params.id, metaAccountId: body.metaAccountId, name: body.name,
+      currency: body.currency ?? 'EUR', accessToken: encrypt(token), settings: { create: {} },
+    },
+    include: { settings: true },
+  });
+  res.json(account);
+}));
+
 api.get('/drive/status', wrap(async (_req, res) => res.json({ connected: drive.isConnected() })));
 
 api.get('/drive/oauth/url', wrap(async (_req, res) => res.json({ url: drive.getAuthUrl() })));

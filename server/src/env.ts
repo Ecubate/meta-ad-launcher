@@ -11,6 +11,8 @@ export const env = {
     appId: opt('META_APP_ID'),
     appSecret: opt('META_APP_SECRET'),
     systemUserToken: opt('META_SYSTEM_USER_TOKEN'),
+    // Callback goes through the app origin (Vite proxy in dev) so the session cookie is sent.
+    oauthRedirect: opt('META_OAUTH_REDIRECT', 'http://localhost:5173/api/meta/oauth/callback'),
   },
   google: {
     clientId: opt('GOOGLE_CLIENT_ID'),

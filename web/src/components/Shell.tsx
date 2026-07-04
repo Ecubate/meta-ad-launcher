@@ -1,5 +1,6 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { ConnectMetaModal } from './ConnectMetaModal';
 import {
   Rocket, Users, Image as ImageIcon, TrendingUp, FileText, Pencil, Files,
   Sparkles, LayoutGrid, Settings, HelpCircle, ChevronDown, Megaphone, FolderOpen, BarChart3, LogOut,
@@ -42,6 +43,7 @@ const railIcons = [Rocket, ImageIcon, FolderOpen, BarChart3, Megaphone];
 export function Shell({ children }: { children: ReactNode }) {
   const { workspace, account } = useAccount();
   const { user, logout } = useAuth();
+  const [connectOpen, setConnectOpen] = useState(false);
 
   return (
     <div className="flex h-full bg-bg text-fg">
@@ -75,9 +77,10 @@ export function Shell({ children }: { children: ReactNode }) {
         </button>
 
         <div className="text-[11px] uppercase tracking-wide text-muted px-2 mb-1">Ad Account</div>
-        <button className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md border border-line bg-surface text-sm mb-5 hover:bg-hover">
+        <button onClick={() => setConnectOpen(true)} title="Connect / switch Meta ad account"
+          className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md border border-line bg-surface text-sm mb-5 hover:bg-hover">
           <span className="text-[#4c9fff]">∞</span>
-          <span className="truncate">{account?.name ?? 'Select account'}</span>
+          <span className="truncate">{account?.name ?? 'Connect account'}</span>
           <ChevronDown size={15} className="ml-auto text-muted" />
         </button>
 
@@ -104,6 +107,10 @@ export function Shell({ children }: { children: ReactNode }) {
 
       {/* Main */}
       <main className="flex-1 overflow-y-auto bg-bg">{children}</main>
+
+      {connectOpen && workspace && (
+        <ConnectMetaModal workspaceId={workspace.id} onClose={() => setConnectOpen(false)} onConnected={() => location.reload()} />
+      )}
     </div>
   );
 }
