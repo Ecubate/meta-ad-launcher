@@ -13,8 +13,8 @@
   --border: #263041;    /* hairlines */
   --fg: #e7ebf0;        /* primary text */
   --muted: #8a94a3;     /* secondary text */
-  --primary: #1fa055;   /* brand green */
-  --primary-hover: #17864a;
+  --primary: #7c3aed;   /* brand purple */
+  --primary-hover: #6d28d9;
 }
 
 html, body, #root { height: 100%; }

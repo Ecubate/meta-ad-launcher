@@ -156,7 +156,7 @@ export function LaunchSettingsPage() {
             <div className="text-xs font-medium text-muted mb-1.5">Direct Tags</div>
             <div className="flex flex-wrap gap-1.5">
               {DIRECT_TAGS.map((t) => (
-                <button key={t} onClick={() => addToken(t)} className="px-2 py-1 rounded bg-[#12281d] text-emerald-300 text-xs hover:bg-[#173324]">{t}</button>
+                <button key={t} onClick={() => addToken(t)} className="px-2 py-1 rounded bg-[#211538] text-violet-300 text-xs hover:bg-[#2b1a48]">{t}</button>
               ))}
             </div>
           </div>
@@ -164,7 +164,7 @@ export function LaunchSettingsPage() {
             <div className="text-xs font-medium text-muted mb-1.5">Placeholder Text</div>
             <div className="flex flex-wrap gap-1.5">
               {PLACEHOLDER_TAGS.map((t) => (
-                <button key={t} onClick={() => addToken(t)} className="px-2 py-1 rounded bg-[#12281d] text-emerald-300 text-xs hover:bg-[#173324]">{t}</button>
+                <button key={t} onClick={() => addToken(t)} className="px-2 py-1 rounded bg-[#211538] text-violet-300 text-xs hover:bg-[#2b1a48]">{t}</button>
               ))}
             </div>
           </div>
