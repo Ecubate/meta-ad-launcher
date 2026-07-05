@@ -12,9 +12,18 @@ export function LaunchSettingsPage() {
   const [s, setS] = useState<any>(null);
   const [saving, setSaving] = useState<string>('');
   const [preview, setPreview] = useState('');
+  const [pages, setPages] = useState<any[]>([]);
+  const [pixels, setPixels] = useState<any[]>([]);
 
   useEffect(() => {
     if (account?.settings) setS({ ...account.settings });
+  }, [account?.id]);
+
+  // Best-effort load of Pages + Pixels from Meta (falls back to manual entry).
+  useEffect(() => {
+    if (!account) return;
+    api.pages(account.id).then(setPages).catch(() => setPages([]));
+    api.pixels(account.id).then(setPixels).catch(() => setPixels([]));
   }, [account?.id]);
 
   const tokens: string[] = useMemo(() => (Array.isArray(s?.namingTokens) ? s.namingTokens : ['{{filename}}']), [s]);
@@ -66,8 +75,27 @@ export function LaunchSettingsPage() {
       <Section title="Ad Profiles" desc="The Facebook Page and Instagram account your ads publish from.">
         <div className="grid grid-cols-2 gap-4">
           <Field label="Facebook Page">
-            <Input value={s.facebookPageName ?? ''} placeholder="Page name" onChange={(e) => set({ facebookPageName: e.target.value })} />
-            <Input className="mt-2" value={s.facebookPageId ?? ''} placeholder="Page ID" onChange={(e) => set({ facebookPageId: e.target.value })} />
+            {pages.length > 0 ? (
+              <select
+                value={s.facebookPageId ?? ''}
+                onChange={(e) => {
+                  const pg = pages.find((p) => p.id === e.target.value);
+                  set({ facebookPageId: pg?.id ?? '', facebookPageName: pg?.name ?? '', instagramAccountId: pg?.instagram_business_account?.id ?? s.instagramAccountId });
+                }}
+                className="w-full px-3 py-2 rounded-md bg-input border border-line text-sm text-fg"
+              >
+                <option value="">Select a Page…</option>
+                {s.facebookPageId && !pages.some((p) => p.id === s.facebookPageId) && (
+                  <option value={s.facebookPageId}>{s.facebookPageName ?? s.facebookPageId} (saved)</option>
+                )}
+                {pages.map((p) => <option key={p.id} value={p.id}>{p.name} — {p.id}</option>)}
+              </select>
+            ) : (
+              <>
+                <Input value={s.facebookPageName ?? ''} placeholder="Page name" onChange={(e) => set({ facebookPageName: e.target.value })} />
+                <Input className="mt-2" value={s.facebookPageId ?? ''} placeholder="Page ID" onChange={(e) => set({ facebookPageId: e.target.value })} />
+              </>
+            )}
           </Field>
           <Field label="Associated Instagram Account">
             <Input value={s.instagramAccountName ?? ''} placeholder="Instagram name" onChange={(e) => set({ instagramAccountName: e.target.value })} />
@@ -84,8 +112,22 @@ export function LaunchSettingsPage() {
         <Toggle checked={!!s.trackingEnabled} onChange={(v) => set({ trackingEnabled: v })} label="Enable Tracking Specs" />
         <div className="grid grid-cols-2 gap-4 mt-4">
           <Field label="Website pixel">
-            <Input value={s.pixelName ?? ''} placeholder="Pixel name" onChange={(e) => set({ pixelName: e.target.value })} />
-            <Input className="mt-2" value={s.pixelId ?? ''} placeholder="Pixel ID" onChange={(e) => set({ pixelId: e.target.value })} />
+            {pixels.length > 0 ? (
+              <select
+                value={s.pixelId ?? ''}
+                onChange={(e) => { const px = pixels.find((p) => p.id === e.target.value); set({ pixelId: px?.id ?? '', pixelName: px?.name ?? '' }); }}
+                className="w-full px-3 py-2 rounded-md bg-input border border-line text-sm text-fg"
+              >
+                <option value="">Select a Pixel…</option>
+                {s.pixelId && !pixels.some((p) => p.id === s.pixelId) && <option value={s.pixelId}>{s.pixelName ?? s.pixelId} (saved)</option>}
+                {pixels.map((p) => <option key={p.id} value={p.id}>{p.name} — {p.id}</option>)}
+              </select>
+            ) : (
+              <>
+                <Input value={s.pixelName ?? ''} placeholder="Pixel name" onChange={(e) => set({ pixelName: e.target.value })} />
+                <Input className="mt-2" value={s.pixelId ?? ''} placeholder="Pixel ID" onChange={(e) => set({ pixelId: e.target.value })} />
+              </>
+            )}
           </Field>
           <Field label="App (optional)">
             <Input value={s.appId ?? ''} placeholder="App ID" onChange={(e) => set({ appId: e.target.value })} />
