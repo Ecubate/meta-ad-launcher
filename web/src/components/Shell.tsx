@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { ConnectMetaModal } from './ConnectMetaModal';
 import {
   Rocket, Users, Image as ImageIcon, TrendingUp, FileText, Pencil, Files,
-  Sparkles, LayoutGrid, Settings, HelpCircle, ChevronDown, Megaphone, FolderOpen, BarChart3, LogOut,
+  Sparkles, LayoutGrid, Settings, HelpCircle, ChevronDown, LogOut,
   type Icon as IconType,
 } from './icons';
 import { useAccount } from '../lib/account';
@@ -38,8 +38,6 @@ const navGroups: { label: string; items: Item[] }[] = [
   },
 ];
 
-const railIcons = [Rocket, ImageIcon, FolderOpen, BarChart3, Megaphone];
-
 export function Shell({ children }: { children: ReactNode }) {
   const { workspace, account } = useAccount();
   const { user, logout } = useAuth();
@@ -51,13 +49,6 @@ export function Shell({ children }: { children: ReactNode }) {
       <aside className="w-14 shrink-0 bg-rail border-r border-line flex flex-col items-center py-3 gap-5">
         <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white grid place-items-center font-bold text-sm">
           {workspace?.name?.[0]?.toUpperCase() ?? 'E'}
-        </div>
-        <div className="flex flex-col gap-4 text-muted">
-          {railIcons.map((Icon, i) => (
-            <button key={i} className={`hover:text-fg transition-colors ${i === 0 ? 'text-fg' : ''}`}>
-              <Icon size={18} />
-            </button>
-          ))}
         </div>
         <div className="mt-auto flex flex-col gap-4 text-muted">
           <button className="hover:text-fg" title={user?.email}><HelpCircle size={18} /></button>
