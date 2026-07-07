@@ -13,6 +13,8 @@ APP_DIR="${APP_DIR:-$HOME/adlauncher}"                 # where the repo lives on
 REPO="git@github.com:Ecubate/meta-ad-launcher.git"
 BRANCH="${BRANCH:-main}"
 PORT="${PORT:-3010}"                                   # must match server/.env PORT + nginx
+# The TS build (heavy Prisma types) OOMs on the 2 GB box's default V8 heap; give it more.
+NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=2048}"; export NODE_OPTIONS
 # ===========================
 
 echo "▶ Deploying $REPO ($BRANCH) → $APP_DIR"
@@ -37,6 +39,8 @@ npm run build --workspace web
 npm run build --workspace server
 
 # 3. Sync the database schema (Postgres in prod — see server/.env DATABASE_URL)
+# Prisma CLI doesn't auto-load server/.env from the repo root — export it here first.
+set -a; . server/.env; set +a
 npx prisma db push --schema server/prisma/schema.prisma
 
 # 4. Start / reload under pm2 (env is read from server/.env)
