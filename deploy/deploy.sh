@@ -8,6 +8,11 @@
 #
 set -euo pipefail
 
+# Cap Node's heap so the TypeScript build doesn't OOM on the 2 GB agency box —
+# Prisma's generated client types are memory-heavy and tsc hits the default
+# ~950 MB limit. Overridable via the environment.
+export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=2048}"
+
 # ===== edit these once =====
 APP_DIR="${APP_DIR:-$HOME/adlauncher}"                 # where the repo lives on the box
 REPO="git@github.com:Ecubate/meta-ad-launcher.git"
@@ -36,7 +41,10 @@ npm ci
 npm run build --workspace web
 npm run build --workspace server
 
-# 3. Sync the database schema (Postgres in prod — see server/.env DATABASE_URL)
+# 3. Sync the database schema (Postgres in prod — see server/.env DATABASE_URL).
+# Prisma does NOT auto-load server/.env from the repo root, so export it first,
+# otherwise `prisma db push` errors with "Environment variable not found: DATABASE_URL".
+if [ -f server/.env ]; then set -a; . server/.env; set +a; fi
 npx prisma db push --schema server/prisma/schema.prisma
 
 # 4. Start / reload under pm2 (env is read from server/.env)
