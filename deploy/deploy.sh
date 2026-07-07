@@ -27,6 +27,10 @@ else
   cd "$APP_DIR"
 fi
 
+# 1b. Production uses Postgres (repo stays SQLite for local dev). Idempotent:
+# the git reset above restored sqlite; this flips it to postgresql each deploy.
+sed -i 's/provider = "sqlite"/provider = "postgresql"/' server/prisma/schema.prisma
+
 # 2. Install + build (web → web/dist served by the API; server → server/dist)
 npm ci
 npm run build --workspace web
