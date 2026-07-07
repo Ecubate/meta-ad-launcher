@@ -23,6 +23,8 @@ export const env = {
   },
   tokenEncryptionKey: opt('TOKEN_ENCRYPTION_KEY', 'dev-insecure-key-change-me'),
   sessionSecret: opt('SESSION_SECRET', 'dev-session-secret-change-me'),
+  // Set true in production (HTTPS) so the session cookie is marked Secure.
+  cookieSecure: opt('COOKIE_SECURE', 'false') === 'true',
   // Restrict Google login to this email domain (empty = allow any). e.g. "ecubate.com"
   allowedEmailDomain: opt('ALLOWED_EMAIL_DOMAIN'),
   // Allow the passwordless dev login button (local only). Set to "false" in prod.

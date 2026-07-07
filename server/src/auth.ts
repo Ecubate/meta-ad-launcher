@@ -8,13 +8,14 @@ import { PrismaSessionStore } from './session-store.js';
 export type SessionUser = { id: string; name: string; email: string; picture?: string };
 
 export function setupAuth(app: Express) {
+  app.set('trust proxy', 1); // behind nginx: trust X-Forwarded-Proto for secure cookies
   app.use(
     session({
       store: new PrismaSessionStore(),
       secret: env.sessionSecret,
       resave: false,
       saveUninitialized: false,
-      cookie: { maxAge: 7 * 24 * 60 * 60 * 1000, httpOnly: true, sameSite: 'lax' },
+      cookie: { maxAge: 7 * 24 * 60 * 60 * 1000, httpOnly: true, sameSite: 'lax', secure: env.cookieSecure },
     }),
   );
   app.use(passport.initialize());
